@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>今天吃什么？ | 随机美食决策系统</title>
+  <meta name="description" content="随机决定今天去哪里吃饭，管理你的餐厅与菜单数据库，让选择不再困难。" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- 背景粒子 -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🍽️</span>
+        <span class="logo-text">今天吃什么</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" id="tab-random" onclick="switchTab('random')">
+          <span>🎲</span> 随机决定
+        </button>
+        <button class="nav-tab" id="tab-manage" onclick="switchTab('manage')">
+          <span>📋</span> 数据管理
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- ── 随机决定页面 ──────────────────────────────── -->
+    <section class="page active" id="page-random">
+      <div class="random-hero">
+        <h1 class="hero-title">今天<span class="gradient-text">吃什么</span>？</h1>
+        <p class="hero-sub">选择大类，让命运帮你决定！</p>
+      </div>
+
+      <!-- 分类选择 -->
+      <div class="category-selector" id="category-selector">
+        <div class="selector-label">选择类别</div>
+        <div class="category-chips" id="category-chips">
+          <!-- 动态生成 -->
+          <button class="chip active" data-id="" id="chip-all">🍽️ 全部随机</button>
+        </div>
+      </div>
+
+      <!-- 开始按钮 -->
+      <div class="spin-area">
+        <button class="spin-btn" id="spin-btn" onclick="doRandom()">
+          <span class="spin-btn-inner">
+            <span class="spin-icon">🎲</span>
+            <span class="spin-label">帮我决定！</span>
+          </span>
+          <div class="spin-ring"></div>
+        </button>
+      </div>
+
+      <!-- 结果卡片 -->
+      <div class="result-card" id="result-card">
+        <div class="result-badge" id="result-badge"></div>
+        <div class="result-emoji" id="result-emoji">🏮</div>
+        <div class="result-restaurant" id="result-restaurant">—</div>
+        <div class="result-address" id="result-address"></div>
+        <div class="result-divider"></div>
+        <div class="result-dish-label">今日推荐</div>
+        <div class="result-dish" id="result-dish">—</div>
+        <div class="result-menu-toggle" onclick="toggleMenu()">查看完整菜单 ▾</div>
+        <div class="result-menu-list" id="result-menu-list"></div>
+        <button class="reroll-btn" onclick="doRandom()">🔀 再来一次</button>
+      </div>
+
+      <!-- 空状态 -->
+      <div class="empty-state" id="empty-random" style="display:none">
+        <div class="empty-icon">🥺</div>
+        <div class="empty-text">还没有餐厅数据</div>
+        <div class="empty-sub">去「数据管理」添加你常去的餐厅吧！</div>
+        <button class="empty-btn" onclick="switchTab('manage')">去添加</button>
+      </div>
+    </section>
+
+    <!-- ── 数据管理页面 ──────────────────────────────── -->
+    <section class="page" id="page-manage">
+      <div class="manage-header">
+        <h2 class="manage-title">餐厅数据库</h2>
+        <button class="add-cat-btn" id="btn-add-cat" onclick="openAddCategoryModal()">
+          ＋ 新增分类
+        </button>
+      </div>
+
+      <div class="manage-body" id="manage-body">
+        <!-- 动态生成分类卡片 -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Modal: 新增/编辑分类 ───────────────────────── -->
+  <div class="modal-overlay" id="modal-category" onclick="closeModalOnBg(event, 'modal-category')">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-cat-title">新增分类</span>
+        <button class="modal-close" onclick="closeModal('modal-category')">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">分类名称</label>
+        <input class="form-input" id="cat-name-input" type="text" placeholder="例如：中餐、日料、火锅…" maxlength="20" />
+
+        <label class="form-label" style="margin-top:16px">分类图标（emoji）</label>
+        <div class="emoji-picker" id="emoji-picker">
+          <!-- 常用 emoji -->
+        </div>
+        <input class="form-input" id="cat-icon-input" type="text" placeholder="🍽️" maxlength="4" />
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick="closeModal('modal-category')">取消</button>
+        <button class="modal-btn confirm" id="btn-save-cat" onclick="saveCategory()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: 新增/编辑餐厅 ───────────────────────── -->
+  <div class="modal-overlay" id="modal-restaurant" onclick="closeModalOnBg(event, 'modal-restaurant')">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-res-title">新增餐厅</span>
+        <button class="modal-close" onclick="closeModal('modal-restaurant')">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">餐厅名称 <span class="required">*</span></label>
+        <input class="form-input" id="res-name-input" type="text" placeholder="例如：老王饺子馆" maxlength="30" />
+
+        <label class="form-label" style="margin-top:14px">地址（选填）</label>
+        <input class="form-input" id="res-addr-input" type="text" placeholder="例如：中山路88号" maxlength="60" />
+
+        <label class="form-label" style="margin-top:14px">菜单</label>
+        <div class="menu-tags" id="menu-tags"></div>
+        <div class="menu-add-row">
+          <input class="form-input menu-item-input" id="menu-item-input" type="text"
+            placeholder="输入菜名，回车添加…" maxlength="30"
+            onkeydown="handleMenuKeydown(event)" />
+          <button class="menu-add-btn" onclick="addMenuTag()">添加</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick="closeModal('modal-restaurant')">取消</button>
+        <button class="modal-btn confirm" id="btn-save-res" onclick="saveRestaurant()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 通知 -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
