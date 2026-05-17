@@ -75,11 +75,15 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 5. 启动服务
+### 5. 启动服务（同时启动前后端）
 
 ```bash
 python app.py
 ```
+
+这个命令会同时启动：
+- **后端 API**（Flask，处理数据读写、随机推荐、AI 等功能）
+- **前端页面**（静态 HTML/CSS/JS，由 Flask 托管，无需额外构建步骤）
 
 ### 6. 打开浏览器
 
