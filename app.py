@@ -7,6 +7,8 @@ import json
 import random
 import uuid
 import os
+import fcntl
+import requests as http_requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -15,17 +17,38 @@ CORS(app)
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data.json')
 
+# ─── SiliconFlow AI 配置 ────────────────────────────────────────────────────
+SF_API_KEY = os.environ.get('SILICONFLOW_API_KEY', '')
+SF_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
+SF_CHAT_MODEL = os.environ.get('SF_CHAT_MODEL', 'deepseek-ai/DeepSeek-V4-Flash')
+SF_IMAGE_MODEL = os.environ.get('SF_IMAGE_MODEL', 'Kwai-Kolors/Kolors')
+
+
+def get_effective_api_key():
+    """优先取环境变量，否则从 data.json 的 settings 读取"""
+    if SF_API_KEY:
+        return SF_API_KEY
+    data = load_data()
+    return data.get('settings', {}).get('siliconflow_api_key', '')
+
 
 def load_data():
     """加载本地 JSON 数据"""
     with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        fcntl.flock(f, fcntl.LOCK_SH)
+        data = json.load(f)
+        fcntl.flock(f, fcntl.LOCK_UN)
+    return data
 
 
 def save_data(data):
-    """保存数据到本地 JSON 文件"""
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+    """保存数据到本地 JSON 文件（加写锁防并发）"""
+    with open(DATA_FILE, 'r+', encoding='utf-8') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.seek(0)
         json.dump(data, f, ensure_ascii=False, indent=2)
+        f.truncate()
+        fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def get_json_body():
@@ -265,5 +288,170 @@ def get_random():
     })
 
 
+# ─── AI 推荐语 API ─────────────────────────────────────────────────────────
+
+@app.route('/api/ai/recommend', methods=['POST'])
+def ai_recommend():
+    """调用 SiliconFlow LLM 流式生成幽默推荐语"""
+    from flask import Response
+
+    body, error_response = get_json_body()
+    if error_response:
+        return error_response
+
+    restaurant = normalize_text(body.get('restaurant'))
+    dish = normalize_text(body.get('dish'))
+    category = normalize_text(body.get('category'))
+
+    if not restaurant or not dish:
+        return jsonify({'error': '餐厅名称和菜品名称不能为空'}), 400
+
+    if not get_effective_api_key():
+        def no_key():
+            yield f'data: {json.dumps({"content": "AI 推荐功能暂未配置，请联系管理员设置 API Key。"}, ensure_ascii=False)}\n\n'
+            yield 'data: [DONE]\n\n'
+        return Response(no_key(), content_type='text/event-stream')
+
+    prompt = (
+        f"你是一个幽默风趣的美食推荐官。用户刚刚随机选了一家餐厅「{restaurant}」"
+        f"（分类：{category or '美食'}），推荐的菜品是「{dish}」。"
+        f"请用轻松搞笑的语气，生成一段50字以内的推荐语，要有画面感，让人看了就想吃。"
+        f"不要加引号、不要加表情符号前缀，直接输出推荐语。"
+    )
+
+    def generate():
+        try:
+            resp = http_requests.post(
+                f'{SF_BASE_URL}/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {get_effective_api_key()}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'model': SF_CHAT_MODEL,
+                    'messages': [{'role': 'user', 'content': prompt}],
+                    'max_tokens': 200,
+                    'temperature': 0.9,
+                    'stream': True,
+                    'enable_thinking': False,
+                },
+                timeout=60,
+                stream=True,
+            )
+            resp.raise_for_status()
+            for raw_line in resp.iter_lines():
+                if not raw_line:
+                    continue
+                line = raw_line.decode('utf-8') if isinstance(raw_line, bytes) else raw_line
+                if not line.startswith('data:'):
+                    continue
+                payload = line[5:].strip()
+                if payload == '[DONE]':
+                    yield 'data: [DONE]\n\n'
+                    break
+                try:
+                    chunk = json.loads(payload)
+                    delta = chunk['choices'][0].get('delta', {})
+                    content = delta.get('content', '')
+                    if content:
+                        yield f'data: {json.dumps({"content": content}, ensure_ascii=False)}\n\n'
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    continue
+        except http_requests.Timeout:
+            yield f'data: {json.dumps({"error": "AI 推荐生成超时"}, ensure_ascii=False)}\n\n'
+            yield 'data: [DONE]\n\n'
+        except Exception as e:
+            yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
+            yield 'data: [DONE]\n\n'
+
+    return Response(generate(), content_type='text/event-stream')
+
+
+# ─── AI 菜品图片 API ──────────────────────────────────────────────────────
+
+@app.route('/api/ai/image', methods=['POST'])
+def ai_image():
+    """调用 SiliconFlow 图像生成 API 生成菜品图片"""
+    body, error_response = get_json_body()
+    if error_response:
+        return error_response
+
+    dish = normalize_text(body.get('dish'))
+    category = normalize_text(body.get('category'))
+
+    if not dish:
+        return jsonify({'error': '菜品名称不能为空'}), 400
+
+    if not get_effective_api_key():
+        return jsonify({'image_url': None})
+
+    prompt = (
+        f"A delicious plate of {dish}, {category or 'Chinese'} cuisine, "
+        f"professional food photography, warm lighting, shallow depth of field, "
+        f"appetizing presentation on a ceramic plate, restaurant quality"
+    )
+
+    try:
+        resp = http_requests.post(
+            f'{SF_BASE_URL}/images/generations',
+            headers={
+                'Authorization': f'Bearer {get_effective_api_key()}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': SF_IMAGE_MODEL,
+                'prompt': prompt,
+                'image_size': '1024x1024',
+                'batch_size': 1,
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        image_url = data['images'][0]['url'] if data.get('images') else None
+        return jsonify({'image_url': image_url})
+    except http_requests.Timeout:
+        return jsonify({'error': 'AI 图片生成超时，请稍后再试'}), 504
+    except Exception as e:
+        return jsonify({'error': f'AI 图片生成失败：{str(e)}'}), 500
+
+
+# ─── 设置 API（前端配置 API Key）───────────────────────────────────────────
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """读取 AI 配置信息（不暴露完整 key）"""
+    data = load_data()
+    stored_key = data.get('settings', {}).get('siliconflow_api_key', '')
+    return jsonify({
+        'has_env_key': bool(SF_API_KEY),
+        'has_stored_key': bool(stored_key),
+        'api_key_masked': (
+            stored_key[:4] + '…' + stored_key[-4:]
+            if len(stored_key) > 12
+            else '已配置' if stored_key else ''
+        ),
+    })
+
+
+@app.route('/api/settings', methods=['PUT'])
+def update_settings():
+    """保存 AI 配置"""
+    body, error_response = get_json_body()
+    if error_response:
+        return error_response
+
+    data = load_data()
+    if 'settings' not in data:
+        data['settings'] = {}
+
+    key = normalize_text(body.get('siliconflow_api_key', ''))
+    data['settings']['siliconflow_api_key'] = key
+    save_data(data)
+    return jsonify({'message': '设置已保存'})
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', '1') == '1'
+    app.run(debug=debug, port=port)

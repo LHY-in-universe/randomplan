@@ -593,6 +593,62 @@ input { font-family: inherit; outline: none; }
 
 .menu-add-btn:hover { border-color: var(--c-orange); }
 
+/* ── AI 配置 ──────────────────────────────────────────────────────────── */
+.settings-section {
+  margin-top: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  font-size: 0.95rem; font-weight: 600;
+  cursor: pointer; user-select: none;
+  transition: background 0.15s;
+}
+
+.settings-header:hover { background: var(--bg-card-hover); }
+
+.settings-arrow { font-size: 0.8rem; color: var(--text-dim); transition: transform 0.25s; }
+.settings-section.collapsed .settings-arrow { transform: rotate(-90deg); }
+.settings-section.collapsed .settings-body { display: none; }
+
+.settings-body { padding: 0 20px 20px; }
+
+.settings-row { margin-bottom: 12px; }
+
+.settings-input-row {
+  display: flex; gap: 8px; align-items: center;
+}
+
+.settings-eye {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 1rem; transition: border-color 0.15s;
+}
+
+.settings-eye:hover { border-color: var(--c-orange); }
+
+.settings-status {
+  margin-top: 6px;
+  font-size: 0.8rem; color: var(--text-dim);
+}
+
+.settings-save-btn {
+  padding: 10px 24px; border-radius: var(--radius-sm);
+  font-size: 0.86rem; font-weight: 600;
+  background: linear-gradient(135deg, var(--c-orange), var(--c-amber));
+  color: #fff; transition: opacity 0.15s;
+}
+
+.settings-save-btn:hover { opacity: 0.9; }
+
 /* ── Toast ──────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed; top: 24px; right: 24px; z-index: 999;
@@ -635,4 +691,66 @@ input { font-family: inherit; outline: none; }
   .hero-title { font-size: 1.8rem; }
 
   .result-card { padding: 24px 20px 20px; }
+}
+
+/* ── AI 菜品图片 ──────────────────────────────────────────────────────── */
+.result-ai-image-wrap {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.result-ai-image {
+  display: none;
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.result-ai-image.loaded {
+  opacity: 1;
+}
+
+.ai-loading-spinner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--c-orange);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── AI 推荐语 ────────────────────────────────────────────────────────── */
+.result-ai-section {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.result-ai-text {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+  padding: 10px 14px;
+  background: rgba(255, 107, 53, 0.06);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--c-orange);
+  text-align: left;
+  min-height: 0;
 }

@@ -1,77 +1,256 @@
-# 今天吃什么？ 🍽️
+# 今天吃什么？🍽️
 
-一个用于解决“今天吃什么”选择困难的小型 Web 应用。  
-后端使用 Flask，前端使用原生 HTML/CSS/JavaScript，数据直接保存在本地 `data.json`。
-
-## 功能概览
-
-- 按分类或全局随机推荐一家餐厅
-- 从餐厅菜单中随机推荐一道菜
-- 在页面中维护分类、餐厅、地址和菜单
-- 无数据库依赖，数据持久化到本地 JSON 文件
+一个帮你解决"今天吃什么"选择困难症的 Web 应用。  
+随机推荐餐厅和菜品，支持 AI 生成推荐语和菜品图片。
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|---|
-| 后端 | Python 3 + Flask + Flask-CORS |
-| 前端 | HTML + CSS + Vanilla JavaScript |
-| 存储 | 本地 JSON 文件 |
+| 后端 | Python 3 + Flask |
+| 前端 | HTML + CSS + Vanilla JS（无框架） |
+| 存储 | 本地 `data.json` 文件 |
+| AI | SiliconFlow API（可选的 LLM 推荐语 + 图片生成） |
 
-## 运行环境
-
-- Python 3.10+
-- macOS / Linux / Windows 均可
-- 现代浏览器
+---
 
 ## 快速启动
 
-仓库里已经包含一个 `venv/`，也可以自己重新创建虚拟环境。
+### 环境要求
 
-### 方式一：直接使用仓库内虚拟环境
+- Python **3.10 或更高版本**
+- 现代浏览器（Chrome / Edge / Firefox / Safari）
+
+### 1. 获取代码
 
 ```bash
-source venv/bin/activate
+# 如果已 clone 则跳过
+git clone <仓库地址>
+cd random-plan
+```
+
+### 2. 创建虚拟环境
+
+> 虚拟环境用于隔离 Python 依赖，避免和系统其他项目冲突。
+
+**macOS / Linux：**
+
+```bash
+python3 -m venv .venv
+```
+
+**Windows（cmd / PowerShell）：**
+
+```cmd
+python -m venv .venv
+```
+
+### 3. 激活虚拟环境
+
+**macOS / Linux：**
+
+```bash
+source .venv/bin/activate
+```
+
+**Windows（cmd）：**
+
+```cmd
+.venv\Scripts\activate
+```
+
+**Windows（PowerShell）：**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+> 如果 PowerShell 提示"无法加载文件"，先执行：`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+激活成功后，终端提示符前面会出现 `(.venv)` 标志。
+
+### 4. 安装依赖
+
+```bash
 pip install -r requirements.txt
+```
+
+### 5. 启动服务
+
+```bash
 python app.py
 ```
 
-### 方式二：重新创建虚拟环境
+### 6. 打开浏览器
+
+访问 **http://127.0.0.1:5000**
+
+---
+
+## 自定义端口
+
+默认跑在 **5000** 端口。要换端口，设置环境变量 `PORT`：
+
+**macOS / Linux：**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+PORT=5201 python app.py
+```
+
+**Windows（cmd）：**
+
+```cmd
+set PORT=5201
 python app.py
 ```
 
-启动后访问：
+**Windows（PowerShell）：**
 
-```text
-http://127.0.0.1:5000
+```powershell
+$env:PORT=5201
+python app.py
 ```
+
+---
+
+## （可选）配置 AI 功能
+
+应用支持两个 AI 扩展功能（需自行申请 API Key）：
+
+- **AI 推荐语** — 随机后生成一段幽默的推荐文案
+- **AI 菜品图片** — 根据菜品名生成实物图
+
+默认这两个功能不启用，不影响核心随机功能。
+
+### 配置方式
+
+有两种方式设置 API Key（优先级从高到低）：
+
+**方式 A：环境变量（推荐）**
+
+```bash
+# macOS / Linux
+export SILICONFLOW_API_KEY=sk-xxxxxxxx
+python app.py
+```
+
+```cmd
+:: Windows cmd
+set SILICONFLOW_API_KEY=sk-xxxxxxxx
+python app.py
+```
+
+```powershell
+# Windows PowerShell
+$env:SILICONFLOW_API_KEY="sk-xxxxxxxx"
+python app.py
+```
+
+**方式 B：页面内配置**
+
+启动后在浏览器中打开应用 → 切换到「数据管理」→ 拉到页面底部，展开 **⚙️ AI 配置**，填入 API Key 后保存。
+
+> 页面保存的 Key 会写入 `data.json`，下次启动仍然有效。
+
+### 可选的配置项
+
+| 环境变量 | 说明 | 默认值 |
+|---|---|---|
+| `SILICONFLOW_API_KEY` | API Key | （空） |
+| `SILICONFLOW_BASE_URL` | API 地址 | `https://api.siliconflow.cn/v1` |
+| `SF_CHAT_MODEL` | LLM 模型 | `deepseek-ai/DeepSeek-V4-Flash` |
+| `SF_IMAGE_MODEL` | 图片模型 | `Kwai-Kolors/Kolors` |
+| `FLASK_DEBUG` | 是否开启调试模式 | `1`（开启） |
+
+---
+
+## 功能使用
+
+### 🎲 随机决定
+
+1. 在顶部选择分类（或"全部随机"）
+2. 点击中间 **🎲 帮我决定！** 按钮
+3. 页面显示推荐的餐厅 + 菜品
+4. 可展开查看完整菜单，或点击「再来一次」
+
+### 📋 数据管理
+
+- **新增分类** — 点击「＋ 新增分类」，填写名称和图标
+- **编辑分类** — 点击分类卡片右上角的 ✎ 按钮
+- **删除分类** — 点击分类卡片右上角的 ✕ 按钮
+- **添加餐厅** — 在分类卡片底部点击「＋ 添加餐厅」
+- **编辑餐厅** — 点击餐厅旁的 ✎ 按钮
+- **删除餐厅** — 点击餐厅旁的 ✕ 按钮
+- **管理菜单** — 在餐厅弹窗中，输入菜名按回车添加，点击 × 删除
+
+---
 
 ## 项目结构
 
 ```text
 random-plan/
-├── .gitignore         # Git 忽略规则
-├── app.py             # Flask 后端与 REST API
-├── data.json          # 本地数据文件
-├── requirements.txt   # Python 依赖列表
-├── venv/              # 虚拟环境（当前仓库已包含）
-└── static/
-    ├── index.html     # 页面结构
-    ├── style.css      # 页面样式
-    └── script.js      # 前端交互逻辑
+├── .venv/                # Python 虚拟环境（首次运行后生成）
+├── static/
+│   ├── index.html        # 页面 HTML
+│   ├── style.css         # 样式表
+│   └── script.js         # 前端交互逻辑
+├── app.py                # Flask 后端 + REST API
+├── data.json             # 分类 / 餐厅 / 设置数据
+├── requirements.txt      # Python 依赖列表
+└── README.md
 ```
+
+---
+
+## API 接口一览
+
+### 分类
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/api/categories` | 获取所有分类（含餐厅） |
+| `POST` | `/api/categories` | 新增分类 |
+| `PUT` | `/api/categories/<id>` | 更新分类 |
+| `DELETE` | `/api/categories/<id>` | 删除分类（含旗下餐厅） |
+
+### 餐厅
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/categories/<id>/restaurants` | 在分类下新增餐厅 |
+| `PUT` | `/api/restaurants/<id>` | 更新餐厅 |
+| `DELETE` | `/api/restaurants/<id>` | 删除餐厅 |
+
+### 随机
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/api/random` | 全局随机 |
+| `GET` | `/api/random?category_id=<id>` | 按分类随机 |
+
+### AI
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/ai/recommend` | AI 推荐语（流式 SSE） |
+| `POST` | `/api/ai/image` | AI 菜品图片 |
+
+### 设置
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/api/settings` | 获取配置状态（不返回完整 Key） |
+| `PUT` | `/api/settings` | 保存配置（如 `siliconflow_api_key`） |
+
+---
 
 ## 数据结构
 
-`data.json` 的结构如下：
-
 ```json
 {
+  "settings": {
+    "siliconflow_api_key": "sk-..."
+  },
   "categories": [
     {
       "id": "cat_1",
@@ -90,202 +269,29 @@ random-plan/
 }
 ```
 
-数据关系：
-
-- 一个分类包含多家餐厅
-- 一家餐厅包含一个菜单数组
-- 随机推荐时先选分类，再选餐厅，再选菜品
-
-## 页面说明
-
-### 随机决定
-
-- 可选择“全部随机”或某个分类
-- 点击“帮我决定”后返回推荐餐厅和推荐菜品
-- 如果该餐厅有菜单，可展开查看完整菜单
-
-### 数据管理
-
-- 新增、编辑、删除分类
-- 在分类下新增、编辑、删除餐厅
-- 为餐厅维护地址和菜单条目
-
-## API 接口
-
-### 1. 获取所有分类
-
-```http
-GET /api/categories
-```
-
-返回所有分类及其餐厅信息。
-
-### 2. 新增分类
-
-```http
-POST /api/categories
-Content-Type: application/json
-```
-
-请求体：
-
-```json
-{
-  "name": "韩餐",
-  "icon": "🍲"
-}
-```
-
-### 3. 更新分类
-
-```http
-PUT /api/categories/<cat_id>
-Content-Type: application/json
-```
-
-请求体示例：
-
-```json
-{
-  "name": "火锅",
-  "icon": "🍲"
-}
-```
-
-### 4. 删除分类
-
-```http
-DELETE /api/categories/<cat_id>
-```
-
-删除分类时会一并删除该分类下的餐厅。
-
-### 5. 在分类下新增餐厅
-
-```http
-POST /api/categories/<cat_id>/restaurants
-Content-Type: application/json
-```
-
-请求体：
-
-```json
-{
-  "name": "海底捞",
-  "address": "南京东路 100 号",
-  "menu": ["番茄锅", "肥牛", "虾滑"]
-}
-```
-
-### 6. 更新餐厅
-
-```http
-PUT /api/restaurants/<res_id>
-Content-Type: application/json
-```
-
-请求体示例：
-
-```json
-{
-  "name": "海底捞人民广场店",
-  "address": "南京东路 100 号",
-  "menu": ["番茄锅", "毛肚", "虾滑"]
-}
-```
-
-### 7. 删除餐厅
-
-```http
-DELETE /api/restaurants/<res_id>
-```
-
-### 8. 随机推荐
-
-```http
-GET /api/random
-GET /api/random?category_id=<cat_id>
-```
-
-返回示例：
-
-```json
-{
-  "category": {
-    "id": "cat_2",
-    "name": "日料",
-    "icon": "🍣"
-  },
-  "restaurant": {
-    "id": "res_3",
-    "name": "樱花寿司",
-    "address": "示例街道3号",
-    "menu": ["三文鱼寿司", "金枪鱼寿司", "加州卷"]
-  },
-  "recommended_dish": "三文鱼寿司"
-}
-```
-
-## 接口校验规则
-
-当前接口包含以下基础校验：
-
-- 请求体必须是 JSON 对象
-- 分类名称不能为空
-- 分类名称不能重复
-- 分类图标如果传入则不能为空
-- 餐厅名称不能为空
-- 菜单必须是数组
-- 菜单中的空字符串会被自动过滤
-
-常见错误响应：
-
-```json
-{"error": "请求体必须是 JSON 对象"}
-```
-
-```json
-{"error": "该分类已存在"}
-```
-
-```json
-{"error": "菜单必须是数组"}
-```
-
-## 开发说明
-
-- 数据直接写入 `data.json`，适合单机、小规模、本地使用
-- 当前没有数据库锁与并发写保护，不适合多人同时写入
-- 前端是原生 JS，没有打包步骤
-- 结果区域、管理页和弹窗都由 `static/script.js` 动态渲染
+---
 
 ## 常见问题
 
-### 1. `5000` 端口被占用怎么办？
-
-可以先关闭现有进程，或手动换端口运行：
+### 端口被占用怎么办？
 
 ```bash
-venv/bin/python -c "import app; app.app.run(host='127.0.0.1', debug=False, port=5001)"
+# 先杀掉占用端口的进程，再换一个端口启动
+PORT=5201 python app.py
 ```
 
-然后访问：
+### 改完数据页面没刷新？
 
-```text
-http://127.0.0.1:5001
-```
+数据通过 API 读写，修改后页面会自动刷新。如果是直接改了 `data.json` 文件，刷新页面即可。
 
-### 2. 为什么我修改完数据刷新页面才看到？
+### 可以直接改 data.json 吗？
 
-因为数据由后端接口写入 `data.json`，页面通过前端重新拉取接口数据后更新显示。
+可以，注意保持 JSON 格式正确。改完刷新页面即可生效。
 
-### 3. 可以直接改 `data.json` 吗？
+### Windows PowerShell 下 .venv 激活报错？
 
-可以，但需要保证 JSON 格式正确，并遵循现有数据结构。
+执行一次 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` 即可。
 
-## 后续可扩展方向
+### 没有 API Key 能用吗？
 
-- 增加搜索、排序、收藏、最近选择记录
-- 为菜单增加权重或“不想吃”过滤
-- 增加导入导出功能
-- 增加测试和 `requirements.txt`
+可以。AI 推荐语和菜品图片是可选功能，核心的随机推荐不需要任何 API Key。

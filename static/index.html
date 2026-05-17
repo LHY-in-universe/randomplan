@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>今天吃什么？ | 随机美食决策系统</title>
   <meta name="description" content="随机决定今天去哪里吃饭，管理你的餐厅与菜单数据库，让选择不再困难。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -23,10 +24,10 @@
         <span class="logo-text">今天吃什么</span>
       </div>
       <nav class="nav-tabs">
-        <button class="nav-tab active" id="tab-random" onclick="switchTab('random')">
+        <button class="nav-tab active" id="tab-random">
           <span>🎲</span> 随机决定
         </button>
-        <button class="nav-tab" id="tab-manage" onclick="switchTab('manage')">
+        <button class="nav-tab" id="tab-manage">
           <span>📋</span> 数据管理
         </button>
       </nav>
@@ -46,14 +47,13 @@
       <div class="category-selector" id="category-selector">
         <div class="selector-label">选择类别</div>
         <div class="category-chips" id="category-chips">
-          <!-- 动态生成 -->
           <button class="chip active" data-id="" id="chip-all">🍽️ 全部随机</button>
         </div>
       </div>
 
       <!-- 开始按钮 -->
       <div class="spin-area">
-        <button class="spin-btn" id="spin-btn" onclick="doRandom()">
+        <button class="spin-btn" id="spin-btn">
           <span class="spin-btn-inner">
             <span class="spin-icon">🎲</span>
             <span class="spin-label">帮我决定！</span>
@@ -71,9 +71,26 @@
         <div class="result-divider"></div>
         <div class="result-dish-label">今日推荐</div>
         <div class="result-dish" id="result-dish">—</div>
-        <div class="result-menu-toggle" onclick="toggleMenu()">查看完整菜单 ▾</div>
+
+        <!-- AI 菜品图片 -->
+        <div class="result-ai-image-wrap">
+          <div class="ai-loading-spinner" id="result-ai-image-loading">
+            <span class="spinner"></span> AI 正在生成图片…
+          </div>
+          <img class="result-ai-image" id="result-ai-image" alt="AI 生成的菜品图片" />
+        </div>
+
+        <!-- AI 推荐语 -->
+        <div class="result-ai-section">
+          <div class="ai-loading-spinner" id="result-ai-loading">
+            <span class="spinner"></span> AI 正在组织语言…
+          </div>
+          <div class="result-ai-text" id="result-ai-text"></div>
+        </div>
+
+        <div class="result-menu-toggle">查看完整菜单 ▾</div>
         <div class="result-menu-list" id="result-menu-list"></div>
-        <button class="reroll-btn" onclick="doRandom()">🔀 再来一次</button>
+        <button class="reroll-btn">🔀 再来一次</button>
       </div>
 
       <!-- 空状态 -->
@@ -81,7 +98,7 @@
         <div class="empty-icon">🥺</div>
         <div class="empty-text">还没有餐厅数据</div>
         <div class="empty-sub">去「数据管理」添加你常去的餐厅吧！</div>
-        <button class="empty-btn" onclick="switchTab('manage')">去添加</button>
+        <button class="empty-btn">去添加</button>
       </div>
     </section>
 
@@ -89,7 +106,7 @@
     <section class="page" id="page-manage">
       <div class="manage-header">
         <h2 class="manage-title">餐厅数据库</h2>
-        <button class="add-cat-btn" id="btn-add-cat" onclick="openAddCategoryModal()">
+        <button class="add-cat-btn" id="btn-add-cat">
           ＋ 新增分类
         </button>
       </div>
@@ -97,16 +114,38 @@
       <div class="manage-body" id="manage-body">
         <!-- 动态生成分类卡片 -->
       </div>
+
+      <!-- ── AI 配置 ──────────────────────────────────── -->
+      <div class="settings-section" id="settings-section">
+        <div class="settings-header" id="settings-toggle">
+          <span>⚙️ AI 配置</span>
+          <span class="settings-arrow">▾</span>
+        </div>
+        <div class="settings-body" id="settings-body">
+          <div class="settings-row">
+            <label class="form-label">SiliconFlow API Key</label>
+            <div class="settings-input-row">
+              <input class="form-input" id="api-key-input" type="password"
+                placeholder="sk-..." autocomplete="off" />
+              <button class="settings-eye" id="toggle-key-vis" aria-label="显示/隐藏密钥">
+                👁️
+              </button>
+            </div>
+            <div class="settings-status" id="api-key-status"></div>
+          </div>
+          <button class="settings-save-btn" id="btn-save-settings">保存 API Key</button>
+        </div>
+      </div>
     </section>
 
   </main>
 
   <!-- ── Modal: 新增/编辑分类 ───────────────────────── -->
-  <div class="modal-overlay" id="modal-category" onclick="closeModalOnBg(event, 'modal-category')">
+  <div class="modal-overlay" id="modal-category" role="dialog" aria-modal="true">
     <div class="modal">
       <div class="modal-header">
         <span class="modal-title" id="modal-cat-title">新增分类</span>
-        <button class="modal-close" onclick="closeModal('modal-category')">✕</button>
+        <button class="modal-close" aria-label="关闭">✕</button>
       </div>
       <div class="modal-body">
         <label class="form-label">分类名称</label>
@@ -119,18 +158,18 @@
         <input class="form-input" id="cat-icon-input" type="text" placeholder="🍽️" maxlength="4" />
       </div>
       <div class="modal-footer">
-        <button class="modal-btn cancel" onclick="closeModal('modal-category')">取消</button>
-        <button class="modal-btn confirm" id="btn-save-cat" onclick="saveCategory()">保存</button>
+        <button class="modal-btn cancel">取消</button>
+        <button class="modal-btn confirm" id="btn-save-cat">保存</button>
       </div>
     </div>
   </div>
 
   <!-- ── Modal: 新增/编辑餐厅 ───────────────────────── -->
-  <div class="modal-overlay" id="modal-restaurant" onclick="closeModalOnBg(event, 'modal-restaurant')">
+  <div class="modal-overlay" id="modal-restaurant" role="dialog" aria-modal="true">
     <div class="modal modal-wide">
       <div class="modal-header">
         <span class="modal-title" id="modal-res-title">新增餐厅</span>
-        <button class="modal-close" onclick="closeModal('modal-restaurant')">✕</button>
+        <button class="modal-close" aria-label="关闭">✕</button>
       </div>
       <div class="modal-body">
         <label class="form-label">餐厅名称 <span class="required">*</span></label>
@@ -143,14 +182,13 @@
         <div class="menu-tags" id="menu-tags"></div>
         <div class="menu-add-row">
           <input class="form-input menu-item-input" id="menu-item-input" type="text"
-            placeholder="输入菜名，回车添加…" maxlength="30"
-            onkeydown="handleMenuKeydown(event)" />
-          <button class="menu-add-btn" onclick="addMenuTag()">添加</button>
+            placeholder="输入菜名，回车添加…" maxlength="30" />
+          <button class="menu-add-btn">添加</button>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="modal-btn cancel" onclick="closeModal('modal-restaurant')">取消</button>
-        <button class="modal-btn confirm" id="btn-save-res" onclick="saveRestaurant()">保存</button>
+        <button class="modal-btn cancel">取消</button>
+        <button class="modal-btn confirm" id="btn-save-res">保存</button>
       </div>
     </div>
   </div>
@@ -158,6 +196,6 @@
   <!-- Toast 通知 -->
   <div class="toast" id="toast"></div>
 
-  <script src="/static/script.js"></script>
+  <script src="/static/script.js?v=2"></script>
 </body>
 </html>
