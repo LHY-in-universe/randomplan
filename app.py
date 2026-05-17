@@ -7,7 +7,7 @@ import json
 import random
 import uuid
 import os
-import fcntl
+import portalocker
 import requests as http_requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -35,20 +35,20 @@ def get_effective_api_key():
 def load_data():
     """加载本地 JSON 数据"""
     with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        fcntl.flock(f, fcntl.LOCK_SH)
+        portalocker.lock(f, portalocker.LOCK_SH)
         data = json.load(f)
-        fcntl.flock(f, fcntl.LOCK_UN)
+        portalocker.unlock(f)
     return data
 
 
 def save_data(data):
     """保存数据到本地 JSON 文件（加写锁防并发）"""
     with open(DATA_FILE, 'r+', encoding='utf-8') as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+        portalocker.lock(f, portalocker.LOCK_EX)
         f.seek(0)
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.truncate()
-        fcntl.flock(f, fcntl.LOCK_UN)
+        portalocker.unlock(f)
 
 
 def get_json_body():
